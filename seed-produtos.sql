@@ -1,0 +1,9 @@
+insert into produtos (nome, categoria, descricao, material, tamanho, preco_varejo, preco_atacado, cores, imagem_url, ativo) values
+('Organizador de tampas', 'Organização & Casa', 'Para tampas plásticas ou de panelas. Espaço para até 10 tampas.', 'plástico PLA', null, 45.00, 40.00, array['#1C1C1E','#FFFFFF','#B9B9BE'], 'assets/organizador-tampas.jpg', true),
+('Suporte para pasta e 4 escovas', 'Organização & Casa', 'Fixação por fita dupla face. Ideal para banheiros compartilhados.', 'plástico PETG', '7,5 x 8,5 x 23 cm', 35.00, 30.00, array['#1C1C1E'], 'assets/suporte-escovas.jpg', true),
+('Dispenser para 10 ovos', 'Organização & Casa', 'Design voronoi — visual leve e vazado, mantém os ovos à vista.', 'plástico PLA', null, 30.00, 25.00, array['#1C1C1E','#FFFFFF','#B9B9BE'], 'assets/dispenser-ovos.jpg', true),
+('Bowl organizador', 'Organização & Casa', 'Para guardar chaves, fones, pilhas, controles e outros itens soltos.', 'plástico PLA', '19 cm diâm. x 5,3 cm alt.', 30.00, 25.00, array['#3F5B3A','#8A5A34','#2B2B2E','#E8C79A'], 'assets/bowl-organizador.jpg', true),
+('Conjunto porta-latas Monster', 'Organização & Casa', 'Composto por porta-latas, chaveiro abridor de latas e tampa.', null, null, 40.00, 35.00, array['#1C1C1E','#4CD97B','#2B2B2E','#7B6FD9'], 'assets/porta-latas-monster.jpg', true),
+('Saboneteira de parede', 'Organização & Casa', 'Encaixa na quina da parede, aproveitando espaço no box.', 'plástico PETG', '15 x 15 cm', 25.00, 20.00, array['#1C1C1E'], 'assets/saboneteira-parede.jpg', true),
+('Tampa para ração', 'Pets', 'Kit com 4 peças — mantém a ração do seu pet sempre fresquinha.', 'plástico PETG', '11 cm diâm.', 40.00, 35.00, array['#1C1C1E'], null, true),
+('Pá para ração', 'Pets', 'Personalização sob encomenda.', 'plástico PLA', '25 cm', 25.00, 20.00, array['#8A5A34','#F4A6B0','#1C1C1E','#8FC7E8'], null, true);

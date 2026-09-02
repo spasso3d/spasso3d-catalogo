@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spasso 3D — Gestão</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="nav-inner">
+    <div class="brand-mini"><img class="logo-mini-img" src="assets/logo-mini.png" alt="Spasso 3D"></div>
+    <nav><ul>
+      <li><a href="index.html">Catálogo público ↗</a></li>
+      <li><a href="admin.html">Produtos do catálogo</a></li>
+    </ul></nav>
+  </div>
+  <div class="filament-band"></div>
+</header>
+
+<!-- LOGIN -->
+<div class="login-box" id="loginBox">
+  <img src="assets/logo-mini.png" alt="Spasso 3D">
+  <div class="field"><label>E-mail</label><input type="email" id="loginEmail"></div>
+  <div class="field"><label>Senha</label><input type="password" id="loginPassword"></div>
+  <button class="btn block" id="loginBtn">Entrar</button>
+  <div class="error-msg" id="loginError"></div>
+</div>
+
+<!-- PAINEL -->
+<div class="admin-shell" id="adminShell" style="display:none">
+  <div class="admin-topbar">
+    <div class="who">Logado como <strong id="whoEmail"></strong></div>
+    <button class="btn secondary" id="logoutBtn">Sair</button>
+  </div>
+
+  <div class="gestao-tabs">
+    <button class="gestao-tab active" data-panel="panelPecas">Peças (custo)</button>
+    <button class="gestao-tab" data-panel="panelFilamentos">Filamentos</button>
+    <button class="gestao-tab" data-panel="panelInsumos">Insumos &amp; serviços</button>
+  </div>
+
+  <!-- ========== PEÇAS ========== -->
+  <div class="gestao-panel active" id="panelPecas">
+    <h2 class="admin-section-title" id="pecaFormTitle">Nova peça</h2>
+    <form class="product-form" id="pecaForm">
+      <input type="hidden" id="pecaId">
+      <div class="form-grid">
+        <div class="field"><label>Nome da peça *</label><input type="text" id="pNome" required></div>
+        <div class="field"><label>Tempo de impressão (horas)</label><input type="number" step="0.1" id="pTempo" value="0"></div>
+      </div>
+
+      <div style="margin-top:18px;">
+        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--gray-mid);margin-bottom:8px;">Filamentos usados</label>
+        <div class="repeater" id="filRepeater"></div>
+        <button type="button" class="repeater-add" id="addFilRow">+ adicionar filamento</button>
+      </div>
+
+      <div style="margin-top:18px;">
+        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--gray-mid);margin-bottom:8px;">Insumos / serviços usados</label>
+        <div class="repeater" id="insRepeater"></div>
+        <button type="button" class="repeater-add" id="addInsRow">+ adicionar insumo/serviço</button>
+      </div>
+
+      <div class="pricing-row" style="margin-top:20px;">
+        <div class="field">
+          <label>Markup (multiplicador do custo)</label>
+          <input type="number" step="0.01" id="pMarkup" value="1.5">
+          <small>Ex: 1,5 = preço é 1,5× o custo</small>
+        </div>
+        <div class="field">
+          <label>Margem (% de lucro sobre o preço)</label>
+          <input type="number" step="0.1" id="pMargem">
+          <small>Editar aqui recalcula o markup, e vice-versa</small>
+        </div>
+      </div>
+
+      <div class="cost-summary" id="costSummary">
+        <div class="item"><div class="lbl">Custo filamento</div><div class="val" id="cfFilamento">R$ 0,00</div></div>
+        <div class="item"><div class="lbl">Custo energia</div><div class="val" id="cfEnergia">R$ 0,00</div></div>
+        <div class="item"><div class="lbl">Custo insumos</div><div class="val" id="cfInsumos">R$ 0,00</div></div>
+        <div class="item"><div class="lbl">Custo total</div><div class="val" id="cfTotal">R$ 0,00</div></div>
+        <div class="item price"><div class="lbl">Preço de venda</div><div class="val" id="cfPreco">R$ 0,00</div></div>
+        <div class="item profit"><div class="lbl">Lucro (R$)</div><div class="val" id="cfLucro">R$ 0,00</div></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn" id="pecaSaveBtn">Salvar peça</button>
+        <button type="button" class="btn secondary" id="pecaCancelBtn" style="display:none">Cancelar edição</button>
+      </div>
+      <div class="error-msg" id="pecaFormError"></div>
+    </form>
+
+    <h2 class="admin-section-title">Peças cadastradas</h2>
+    <table class="admin-table">
+      <thead><tr><th>Nome</th><th>Custo total</th><th>Preço venda</th><th>Margem</th><th>Ações</th></tr></thead>
+      <tbody id="pecasTableBody"><tr><td colspan="5">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- ========== FILAMENTOS ========== -->
+  <div class="gestao-panel" id="panelFilamentos">
+    <h2 class="admin-section-title" id="filFormTitle">Novo filamento</h2>
+    <form class="product-form" id="filForm">
+      <input type="hidden" id="filId">
+      <div class="form-grid">
+        <div class="field"><label>Marca *</label><input type="text" id="filMarca" required></div>
+        <div class="field"><label>Cor *</label><input type="text" id="filCor" required></div>
+        <div class="field"><label>Cor (código hex)</label><input type="text" id="filCorHex" placeholder="#000000"></div>
+        <div class="field"><label>Tipo</label><input type="text" id="filTipo" placeholder="PLA, PETG..."></div>
+        <div class="field"><label>Peso do rolo (g) *</label><input type="number" step="1" id="filPeso" value="1000" required></div>
+        <div class="field"><label>Preço do rolo (R$) *</label><input type="number" step="0.01" id="filPreco" required></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn">Salvar filamento</button>
+        <button type="button" class="btn secondary" id="filCancelBtn" style="display:none">Cancelar edição</button>
+      </div>
+      <div class="error-msg" id="filFormError"></div>
+    </form>
+
+    <h2 class="admin-section-title">Filamentos cadastrados</h2>
+    <table class="admin-table">
+      <thead><tr><th>Marca</th><th>Cor</th><th>Tipo</th><th>R$/kg</th><th>Ações</th></tr></thead>
+      <tbody id="filamentosTableBody"><tr><td colspan="5">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- ========== INSUMOS ========== -->
+  <div class="gestao-panel" id="panelInsumos">
+    <h2 class="admin-section-title" id="insFormTitle">Novo insumo / serviço</h2>
+    <form class="product-form" id="insForm">
+      <input type="hidden" id="insId">
+      <div class="field full" style="margin-bottom:14px;">
+        <label>Nome *</label><input type="text" id="insNome" required>
+      </div>
+      <div class="type-toggle">
+        <button type="button" class="active" data-tipo="acessorio" id="btnTipoAcessorio">Acessório (comprado em lote)</button>
+        <button type="button" data-tipo="servico" id="btnTipoServico">Serviço contratado</button>
+      </div>
+      <div class="form-grid" id="loteFields">
+        <div class="field"><label>Quantidade no lote</label><input type="number" step="1" id="insQtdLote" placeholder="Ex: 100"></div>
+        <div class="field"><label>Preço do lote (R$)</label><input type="number" step="0.01" id="insPrecoLote" placeholder="Ex: 20.00"></div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label id="custoUnitLabel">Custo por unidade (R$) — calculado do lote, editável</label>
+        <input type="number" step="0.0001" id="insCustoUnitario">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button type="submit" class="btn">Salvar</button>
+        <button type="button" class="btn secondary" id="insCancelBtn" style="display:none">Cancelar edição</button>
+      </div>
+      <div class="error-msg" id="insFormError"></div>
+    </form>
+
+    <h2 class="admin-section-title">Insumos &amp; serviços cadastrados</h2>
+    <table class="admin-table">
+      <thead><tr><th>Nome</th><th>Tipo</th><th>Custo unitário</th><th>Ações</th></tr></thead>
+      <tbody id="insumosTableBody"><tr><td colspan="4">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/gestao.js"></script>
+</body>
+</html>

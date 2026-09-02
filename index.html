@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spasso 3D — Catálogo</title>
+<meta name="description" content="Catálogo de produtos Spasso 3D — impressão 3D criativa que resolve e surpreende.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .hero{max-width:1080px;margin:0 auto;padding:64px 24px 48px;display:grid;grid-template-columns:1.3fr 1fr;gap:32px;align-items:center;}
+  .eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--orange-dark);margin-bottom:14px;display:block;}
+  .hero h1{font-size:44px;line-height:1.08;color:var(--graphite);}
+  .hero h1 span{color:var(--orange);}
+  .hero p{font-size:16px;color:#4B4B4F;max-width:46ch;margin-top:16px;line-height:1.55;}
+  .hero-tagline{margin-top:22px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-mid);font-weight:600;}
+  .hero-tagline .dot{color:var(--orange);margin:0 8px;}
+  .hero-visual{
+    position:relative;aspect-ratio:1/1;border-radius:24px;
+    background:radial-gradient(circle at 30% 25%,rgba(255,106,0,.18),transparent 55%),var(--white);
+    border:1px solid var(--cream-deep);display:flex;align-items:center;justify-content:center;
+    overflow:hidden;padding:20px;
+  }
+  .logo-hero-img{width:100%;height:auto;display:block;}
+  @media (max-width:760px){
+    .hero{grid-template-columns:1fr;padding-top:40px;}
+    .hero h1{font-size:34px;}
+    .hero-visual{max-width:220px;margin:0 auto;}
+  }
+  .loading-state{text-align:center;padding:60px 20px;color:var(--gray-mid);font-size:14px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-inner">
+    <div class="brand-mini"><img class="logo-mini-img" src="assets/logo-mini.png" alt="Spasso 3D"></div>
+    <nav><ul id="navCategories"></ul></nav>
+  </div>
+  <div class="filament-band"></div>
+</header>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">Catálogo de produtos</span>
+    <h1>Impressão 3D criativa que <span>resolve e surpreende</span></h1>
+    <p>Peças autorais, feitas sob demanda, para organizar a casa e o dia a dia — direto da nossa impressora pra sua mesa. Preços de varejo e atacado disponíveis.</p>
+    <div class="hero-tagline">CRIAMOS<span class="dot">•</span>IMPRIMIMOS<span class="dot">•</span>TRANSFORMAMOS</div>
+  </div>
+  <div class="hero-visual"><img class="logo-hero-img" src="assets/logo-full.png" alt="Spasso 3D"></div>
+</section>
+
+<div class="tabs-wrap">
+  <div class="tabs" id="tabsWrap">
+    <button class="tab-btn active" data-target="all">Todos</button>
+  </div>
+</div>
+
+<main id="mainContent">
+  <div class="loading-state">Carregando produtos…</div>
+</main>
+
+<div class="filament-band"></div>
+<footer>
+  <div><div class="fbrand">SPASSO 3D</div>Impressão 3D criativa · feito por um casal empreendedor</div>
+  <div>Preços sujeitos a alteração sem aviso prévio. Consulte disponibilidade de cores.</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/catalog.js"></script>
+</body>
+</html>
