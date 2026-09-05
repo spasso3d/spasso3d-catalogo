@@ -126,7 +126,23 @@ form.addEventListener('submit', async (e)=>{
   }
 });
 
+document.getElementById('productSearch').addEventListener('input', (e)=>{
+  const term = e.target.value.trim().toLowerCase();
+  if(!term){ renderProductsTable(ALL_PRODUCTS); return; }
+  const filtered = ALL_PRODUCTS.filter(p => {
+    const haystack = [
+      p.nome, p.categoria, p.descricao, p.material, p.tamanho,
+      p.ativo ? 'ativo' : 'inativo',
+      ...(Array.isArray(p.cores) ? p.cores : [])
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(term);
+  });
+  renderProductsTable(filtered);
+});
+
 // ---------- LISTAR ----------
+let ALL_PRODUCTS = [];
+
 async function loadProducts(){
   const tbody = document.getElementById('productsTableBody');
   const { data, error } = await supabaseClient
@@ -138,12 +154,18 @@ async function loadProducts(){
     tbody.innerHTML = `<tr><td colspan="7">Erro ao carregar produtos.</td></tr>`;
     return;
   }
-  if(!data.length){
-    tbody.innerHTML = `<tr><td colspan="7">Nenhum produto cadastrado ainda.</td></tr>`;
+  ALL_PRODUCTS = data || [];
+  renderProductsTable(ALL_PRODUCTS);
+}
+
+function renderProductsTable(list){
+  const tbody = document.getElementById('productsTableBody');
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="7">Nenhum produto encontrado.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = data.map(p => `
+  tbody.innerHTML = list.map(p => `
     <tr>
       <td>${p.imagem_url ? `<img src="${p.imagem_url}" alt="">` : '—'}</td>
       <td>${escapeHtmlAdmin(p.nome)}</td>
@@ -159,7 +181,7 @@ async function loadProducts(){
   `).join('');
 
   tbody.querySelectorAll('[data-edit]').forEach(btn=>{
-    btn.addEventListener('click', ()=> editProduct(btn.dataset.edit, data));
+    btn.addEventListener('click', ()=> editProduct(btn.dataset.edit, ALL_PRODUCTS));
   });
   tbody.querySelectorAll('[data-delete]').forEach(btn=>{
     btn.addEventListener('click', ()=> deleteProduct(btn.dataset.delete));
@@ -203,3 +225,77 @@ function escapeHtmlAdmin(str){
   if(!str) return '';
   return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+/* =========================================================
+   UPLOAD EM LOTE — casa o nome do arquivo com o produto
+   ========================================================= */
+function slugifyAdmin(str){
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+document.getElementById('bulkUploadBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('bulkFileInput');
+  const resultsBox = document.getElementById('bulkResults');
+  const files = [...input.files];
+  if(!files.length){
+    resultsBox.innerHTML = '<div class="error-msg">Selecione pelo menos uma foto primeiro.</div>';
+    return;
+  }
+
+  resultsBox.innerHTML = '';
+  const btn = document.getElementById('bulkUploadBtn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  // carrega todos os produtos atuais pra comparar o slug
+  const { data: produtos, error: prodErr } = await supabaseClient.from('produtos').select('id, nome');
+  if(prodErr){
+    resultsBox.innerHTML = `<div class="error-msg">Erro ao carregar produtos: ${prodErr.message}</div>`;
+    btn.disabled = false; btn.textContent = 'Enviar fotos';
+    return;
+  }
+
+  for(const file of files){
+    const baseName = file.name.replace(/\.[^/.]+$/, ''); // remove extensão
+    const fileSlug = slugifyAdmin(baseName);
+    const match = produtos.find(p => slugifyAdmin(p.nome) === fileSlug);
+
+    const line = document.createElement('div');
+    line.style.fontSize = '13.5px';
+
+    if(!match){
+      line.innerHTML = `❌ <strong>${escapeHtmlAdmin(file.name)}</strong> — nenhum produto encontrado com esse nome.`;
+      resultsBox.appendChild(line);
+      continue;
+    }
+
+    try{
+      const ext = file.name.split('.').pop();
+      const path = `${match.id}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabaseClient
+        .storage.from('produtos-fotos')
+        .upload(path, file, { upsert: false });
+      if(uploadError) throw uploadError;
+
+      const { data: publicData } = supabaseClient.storage.from('produtos-fotos').getPublicUrl(path);
+      const { error: updateError } = await supabaseClient
+        .from('produtos').update({ imagem_url: publicData.publicUrl }).eq('id', match.id);
+      if(updateError) throw updateError;
+
+      line.innerHTML = `✅ <strong>${escapeHtmlAdmin(file.name)}</strong> → ${escapeHtmlAdmin(match.nome)}`;
+    } catch(err){
+      line.innerHTML = `⚠️ <strong>${escapeHtmlAdmin(file.name)}</strong> — erro: ${escapeHtmlAdmin(err.message)}`;
+    }
+    resultsBox.appendChild(line);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Enviar fotos';
+  input.value = '';
+  loadProducts();
+  showToast('Upload em lote concluído!');
+});
+
