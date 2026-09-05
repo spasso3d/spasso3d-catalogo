@@ -45,6 +45,18 @@
     <button class="btn secondary" id="logoutBtn">Sair</button>
   </div>
 
+  <h2 class="admin-section-title">Upload de fotos em lote</h2>
+  <div class="product-form" id="bulkUploadBox">
+    <p style="font-size:13.5px;color:var(--gray-mid);margin-top:0;line-height:1.6;">
+      Selecione várias fotos de uma vez. Cada arquivo precisa estar nomeado com o
+      <strong>nome esperado do produto</strong> (veja a lista que te passei) — ex: <code>organizador-de-tampas.jpg</code>.
+      O sistema encontra o produto certo pelo nome do arquivo e já sobe a foto pra ele.
+    </p>
+    <input type="file" id="bulkFileInput" accept="image/*" multiple>
+    <button class="btn" id="bulkUploadBtn" style="margin-top:12px;">Enviar fotos</button>
+    <div id="bulkResults" style="margin-top:16px;display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
   <h2 class="admin-section-title" id="formTitle">Adicionar produto</h2>
   <form class="product-form" id="productForm">
     <input type="hidden" id="productId">
@@ -102,6 +114,9 @@
   </form>
 
   <h2 class="admin-section-title">Produtos cadastrados</h2>
+  <div class="field" style="max-width:360px;margin-bottom:14px;">
+    <input type="text" id="productSearch" placeholder="🔍 Buscar por nome, categoria, material...">
+  </div>
   <table class="admin-table">
     <thead>
       <tr>
