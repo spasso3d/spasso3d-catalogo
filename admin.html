@@ -117,14 +117,24 @@
   <div class="field" style="max-width:360px;margin-bottom:14px;">
     <input type="text" id="productSearch" placeholder="🔍 Buscar por nome, categoria, material...">
   </div>
+
+  <div id="bulkActionsBar" style="display:none;align-items:center;gap:10px;background:var(--white);border:1px solid var(--cream-deep);border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+    <span id="bulkSelectedCount" style="font-size:13px;font-weight:600;color:var(--gray-mid);"></span>
+    <button class="btn secondary" id="bulkActivateBtn" style="padding:7px 14px;font-size:13px;">Ativar</button>
+    <button class="btn secondary" id="bulkDeactivateBtn" style="padding:7px 14px;font-size:13px;">Inativar</button>
+    <button class="btn danger" id="bulkDeleteBtn" style="padding:7px 14px;font-size:13px;">Apagar</button>
+    <button class="btn secondary" id="bulkClearBtn" style="padding:7px 14px;font-size:13px;margin-left:auto;">Limpar seleção</button>
+  </div>
+
   <table class="admin-table">
     <thead>
       <tr>
+        <th><input type="checkbox" id="selectAllCheckbox"></th>
         <th>Foto</th><th>Nome</th><th>Categoria</th><th>Varejo</th><th>Atacado</th><th>Status</th><th>Ações</th>
       </tr>
     </thead>
     <tbody id="productsTableBody">
-      <tr><td colspan="7">Carregando…</td></tr>
+      <tr><td colspan="8">Carregando…</td></tr>
     </tbody>
   </table>
 </div>
@@ -133,6 +143,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/config.js?v=2"></script>
-<script src="js/admin.js?v=2"></script>
+<script src="js/admin.js?v=3"></script>
 </body>
 </html>
