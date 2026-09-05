@@ -126,18 +126,8 @@ form.addEventListener('submit', async (e)=>{
   }
 });
 
-document.getElementById('productSearch').addEventListener('input', (e)=>{
-  const term = e.target.value.trim().toLowerCase();
-  if(!term){ renderProductsTable(ALL_PRODUCTS); return; }
-  const filtered = ALL_PRODUCTS.filter(p => {
-    const haystack = [
-      p.nome, p.categoria, p.descricao, p.material, p.tamanho,
-      p.ativo ? 'ativo' : 'inativo',
-      ...(Array.isArray(p.cores) ? p.cores : [])
-    ].filter(Boolean).join(' ').toLowerCase();
-    return haystack.includes(term);
-  });
-  renderProductsTable(filtered);
+document.getElementById('productSearch').addEventListener('input', ()=>{
+  renderProductsTable(currentFilteredList());
 });
 
 // ---------- LISTAR ----------
@@ -161,12 +151,14 @@ async function loadProducts(){
 function renderProductsTable(list){
   const tbody = document.getElementById('productsTableBody');
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="7">Nenhum produto encontrado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">Nenhum produto encontrado.</td></tr>`;
+    updateBulkBar();
     return;
   }
 
   tbody.innerHTML = list.map(p => `
     <tr>
+      <td><input type="checkbox" class="row-checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}></td>
       <td>${p.imagem_url ? `<img src="${p.imagem_url}" alt="">` : '—'}</td>
       <td>${escapeHtmlAdmin(p.nome)}</td>
       <td>${escapeHtmlAdmin(p.categoria)}</td>
@@ -185,6 +177,87 @@ function renderProductsTable(list){
   });
   tbody.querySelectorAll('[data-delete]').forEach(btn=>{
     btn.addEventListener('click', ()=> deleteProduct(btn.dataset.delete));
+  });
+  tbody.querySelectorAll('.row-checkbox').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      if(cb.checked) SELECTED_IDS.add(cb.dataset.id);
+      else SELECTED_IDS.delete(cb.dataset.id);
+      updateBulkBar();
+    });
+  });
+
+  const selectAll = document.getElementById('selectAllCheckbox');
+  const visibleIds = list.map(p => p.id);
+  selectAll.checked = visibleIds.length > 0 && visibleIds.every(id => SELECTED_IDS.has(id));
+  updateBulkBar();
+}
+
+/* =========================================================
+   SELEÇÃO E AÇÕES EM MASSA
+   ========================================================= */
+let SELECTED_IDS = new Set();
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkActionsBar');
+  const count = SELECTED_IDS.size;
+  if(count === 0){
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  document.getElementById('bulkSelectedCount').textContent =
+    count === 1 ? '1 produto selecionado' : `${count} produtos selecionados`;
+}
+
+document.getElementById('selectAllCheckbox').addEventListener('change', (e)=>{
+  const checked = e.target.checked;
+  document.querySelectorAll('.row-checkbox').forEach(cb=>{
+    cb.checked = checked;
+    if(checked) SELECTED_IDS.add(cb.dataset.id);
+    else SELECTED_IDS.delete(cb.dataset.id);
+  });
+  updateBulkBar();
+});
+
+document.getElementById('bulkClearBtn').addEventListener('click', ()=>{
+  SELECTED_IDS.clear();
+  renderProductsTable(currentFilteredList());
+});
+
+document.getElementById('bulkActivateBtn').addEventListener('click', ()=> bulkSetActive(true));
+document.getElementById('bulkDeactivateBtn').addEventListener('click', ()=> bulkSetActive(false));
+
+async function bulkSetActive(ativo){
+  if(!SELECTED_IDS.size) return;
+  const ids = [...SELECTED_IDS];
+  const { error } = await supabaseClient.from('produtos').update({ ativo }).in('id', ids);
+  if(error){ alert('Erro ao atualizar: ' + error.message); return; }
+  showToast(ativo ? 'Produtos ativados!' : 'Produtos inativados!');
+  SELECTED_IDS.clear();
+  await loadProducts();
+}
+
+document.getElementById('bulkDeleteBtn').addEventListener('click', async ()=>{
+  if(!SELECTED_IDS.size) return;
+  if(!confirm(`Apagar ${SELECTED_IDS.size} produto(s)? Essa ação não pode ser desfeita.`)) return;
+  const ids = [...SELECTED_IDS];
+  const { error } = await supabaseClient.from('produtos').delete().in('id', ids);
+  if(error){ alert('Erro ao apagar: ' + error.message); return; }
+  showToast('Produtos apagados!');
+  SELECTED_IDS.clear();
+  await loadProducts();
+});
+
+function currentFilteredList(){
+  const term = document.getElementById('productSearch').value.trim().toLowerCase();
+  if(!term) return ALL_PRODUCTS;
+  return ALL_PRODUCTS.filter(p => {
+    const haystack = [
+      p.nome, p.categoria, p.descricao, p.material, p.tamanho,
+      p.ativo ? 'ativo' : 'inativo',
+      ...(Array.isArray(p.cores) ? p.cores : [])
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(term);
   });
 }
 
