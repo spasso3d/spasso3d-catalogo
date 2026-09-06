@@ -9,10 +9,8 @@ function formatPrice(v){
 }
 
 function productCardHtml(p){
-  const cores = Array.isArray(p.cores) ? p.cores : [];
-  const swatches = cores.map(c => `<span class="swatch" style="background:${escapeHtml(c)}"></span>`).join('');
   const imgHtml = p.imagem_url
-    ? `<img class="card-img" src="${escapeHtml(p.imagem_url)}" alt="${escapeHtml(p.nome)}">`
+    ? `<img class="card-img" src="${escapeHtml(p.imagem_url)}" alt="${escapeHtml(p.nome)}" data-lightbox="${escapeHtml(p.imagem_url)}" data-lightbox-alt="${escapeHtml(p.nome)}">`
     : `<div class="card-img placeholder"><div class="placeholder-icon"></div>Foto em breve</div>`;
 
   const specsParts = [];
@@ -27,7 +25,6 @@ function productCardHtml(p){
         <h3>${escapeHtml(p.nome)}</h3>
         ${p.descricao ? `<p class="card-desc">${escapeHtml(p.descricao)}</p>` : ''}
         ${specsLine ? `<p class="card-specs">${specsLine}</p>` : ''}
-        ${cores.length ? `<div class="card-colors"><span class="label">Cores:</span>${swatches}</div>` : ''}
         <div class="price-row">
           <div class="price-block"><div class="lbl">Varejo</div><div class="val">${formatPrice(p.preco_varejo)}</div></div>
           <div class="price-block wholesale"><div class="lbl">Atacado</div><div class="val">${formatPrice(p.preco_atacado)}</div></div>
@@ -36,6 +33,46 @@ function productCardHtml(p){
       </div>
     </article>
   `;
+}
+
+function attachLightboxHandlers(){
+  document.querySelectorAll('[data-lightbox]').forEach(img=>{
+    img.addEventListener('click', ()=>{
+      openLightbox(img.dataset.lightbox, img.dataset.lightboxAlt);
+    });
+  });
+}
+
+function openLightbox(src, alt){
+  let overlay = document.getElementById('lightboxOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'lightboxOverlay';
+    overlay.className = 'lightbox-overlay';
+    overlay.innerHTML = `
+      <button class="lightbox-close" aria-label="Fechar">×</button>
+      <img class="lightbox-img" alt="">
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e)=>{
+      if(e.target === overlay || e.target.classList.contains('lightbox-close')) closeLightbox();
+    });
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape') closeLightbox();
+    });
+  }
+  overlay.querySelector('.lightbox-img').src = src;
+  overlay.querySelector('.lightbox-img').alt = alt || '';
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(){
+  const overlay = document.getElementById('lightboxOverlay');
+  if(overlay){
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
 }
 
 function attachCtaHandlers(){
@@ -95,6 +132,7 @@ function renderCatalog(produtos){
   `).join('');
 
   attachCtaHandlers();
+  attachLightboxHandlers();
 
   // filtro por aba
   const tabs = document.querySelectorAll('.tab-btn');
