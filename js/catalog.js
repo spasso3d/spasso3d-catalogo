@@ -164,7 +164,7 @@ function slugify(str){
 async function loadCatalog(){
   const main = document.getElementById('mainContent');
   const { data, error } = await supabaseClient
-    .from('produtos')
+    .from('catalogo_publico')
     .select('*')
     .eq('ativo', true)
     .order('categoria', { ascending: true })

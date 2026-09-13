@@ -378,20 +378,41 @@ function updatePriceDisplay(custoTotal, preco){
   document.getElementById('cfLucro').textContent = brl(preco - custoTotal);
 }
 
+let ALL_PECAS = [];
+let SELECTED_PECA_IDS = new Set();
+
 async function loadPecas(){
-  const { data } = await supabaseClient.from('pecas').select('*').order('nome');
-  renderPecasTable(data || []);
+  const { data } = await supabaseClient.from('pecas').select('*').order('categoria').order('nome');
+  ALL_PECAS = data || [];
+  renderPecasTable(currentFilteredPecas());
 }
+
+function currentFilteredPecas(){
+  const term = document.getElementById('pecaSearch').value.trim().toLowerCase();
+  if(!term) return ALL_PECAS;
+  return ALL_PECAS.filter(p=>{
+    const haystack = [p.nome, p.categoria, p.descricao, p.material, p.tamanho, p.ativo ? 'ativo':'inativo']
+      .filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(term);
+  });
+}
+document.getElementById('pecaSearch').addEventListener('input', ()=>{
+  renderPecasTable(currentFilteredPecas());
+});
 
 function renderPecasTable(pecas){
   const tbody = document.getElementById('pecasTableBody');
-  if(!pecas.length){ tbody.innerHTML = '<tr><td colspan="5">Nenhuma peça cadastrada.</td></tr>'; return; }
+  if(!pecas.length){ tbody.innerHTML = '<tr><td colspan="9">Nenhuma peça encontrada.</td></tr>'; updateBulkBar(); return; }
   tbody.innerHTML = pecas.map(p => `
     <tr>
+      <td><input type="checkbox" class="row-checkbox-peca" data-id="${p.id}" ${SELECTED_PECA_IDS.has(p.id) ? 'checked' : ''}></td>
+      <td>${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="">` : '—'}</td>
       <td>${esc(p.nome)}</td>
+      <td>${esc(p.categoria || '—')}</td>
       <td>${brl(p.custo_total)}</td>
       <td>${brl(p.preco_venda)}</td>
       <td>${p.margem_percentual != null ? Number(p.margem_percentual).toFixed(1)+'%' : '—'}</td>
+      <td><span class="status-pill ${p.ativo ? 'on':'off'}">${p.ativo ? 'Ativo':'Inativo'}</span></td>
       <td class="row-actions">
         <button class="btn secondary" data-edit-peca="${p.id}">Editar</button>
         <button class="btn danger" data-del-peca="${p.id}">Apagar</button>
@@ -400,7 +421,62 @@ function renderPecasTable(pecas){
   `).join('');
   tbody.querySelectorAll('[data-edit-peca]').forEach(b=>b.addEventListener('click', ()=>editPeca(b.dataset.editPeca)));
   tbody.querySelectorAll('[data-del-peca]').forEach(b=>b.addEventListener('click', ()=>deletePeca(b.dataset.delPeca)));
+  tbody.querySelectorAll('.row-checkbox-peca').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      if(cb.checked) SELECTED_PECA_IDS.add(cb.dataset.id);
+      else SELECTED_PECA_IDS.delete(cb.dataset.id);
+      updateBulkBar();
+    });
+  });
+  const selectAll = document.getElementById('selectAllCheckbox');
+  const visibleIds = pecas.map(p=>p.id);
+  selectAll.checked = visibleIds.length > 0 && visibleIds.every(id=>SELECTED_PECA_IDS.has(id));
+  updateBulkBar();
 }
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkActionsBar');
+  const count = SELECTED_PECA_IDS.size;
+  if(count === 0){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('bulkSelectedCount').textContent = count === 1 ? '1 peça selecionada' : `${count} peças selecionadas`;
+}
+
+document.getElementById('selectAllCheckbox').addEventListener('change', (e)=>{
+  const checked = e.target.checked;
+  document.querySelectorAll('.row-checkbox-peca').forEach(cb=>{
+    cb.checked = checked;
+    if(checked) SELECTED_PECA_IDS.add(cb.dataset.id);
+    else SELECTED_PECA_IDS.delete(cb.dataset.id);
+  });
+  updateBulkBar();
+});
+document.getElementById('bulkClearBtn').addEventListener('click', ()=>{
+  SELECTED_PECA_IDS.clear();
+  renderPecasTable(currentFilteredPecas());
+});
+document.getElementById('bulkActivateBtn').addEventListener('click', ()=>bulkSetActivePeca(true));
+document.getElementById('bulkDeactivateBtn').addEventListener('click', ()=>bulkSetActivePeca(false));
+
+async function bulkSetActivePeca(ativo){
+  if(!SELECTED_PECA_IDS.size) return;
+  const ids = [...SELECTED_PECA_IDS];
+  const { error } = await supabaseClient.from('pecas').update({ ativo }).in('id', ids);
+  if(error){ alert('Erro ao atualizar: ' + error.message); return; }
+  showToast(ativo ? 'Peças ativadas!' : 'Peças inativadas!');
+  SELECTED_PECA_IDS.clear();
+  await loadPecas();
+}
+document.getElementById('bulkDeleteBtn').addEventListener('click', async ()=>{
+  if(!SELECTED_PECA_IDS.size) return;
+  if(!confirm(`Apagar ${SELECTED_PECA_IDS.size} peça(s)? Essa ação não pode ser desfeita.`)) return;
+  const ids = [...SELECTED_PECA_IDS];
+  const { error } = await supabaseClient.from('pecas').delete().in('id', ids);
+  if(error){ alert('Erro ao apagar: ' + error.message); return; }
+  showToast('Peças apagadas!');
+  SELECTED_PECA_IDS.clear();
+  await loadPecas();
+});
 
 async function editPeca(id){
   const { data: p } = await supabaseClient.from('pecas').select('*').eq('id', id).single();
@@ -410,9 +486,18 @@ async function editPeca(id){
 
   document.getElementById('pecaId').value = p.id;
   document.getElementById('pNome').value = p.nome;
+  document.getElementById('pCategoria').value = p.categoria || '';
+  document.getElementById('pDescricao').value = p.descricao || '';
+  document.getElementById('pMaterial').value = p.material || '';
+  document.getElementById('pTamanho').value = p.tamanho || '';
   document.getElementById('pTempo').value = p.tempo_impressao_horas;
+  document.getElementById('pPrecoAtacado').value = p.preco_atacado || '';
+  document.getElementById('pAtivo').value = p.ativo ? 'true' : 'false';
   document.getElementById('pMarkup').value = p.markup;
   document.getElementById('pMargem').value = p.margem_percentual || '';
+  editingPecaImageUrl = p.imagem_url || null;
+  document.getElementById('pFotoPreview').innerHTML = p.imagem_url
+    ? `<img src="${esc(p.imagem_url)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">` : '';
 
   document.getElementById('filRepeater').innerHTML = '';
   (fils && fils.length ? fils : [null]).forEach(f => f ? addFilRow(f.filamento_id, f.peso_g) : addFilRow());
@@ -426,10 +511,15 @@ async function editPeca(id){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
+let editingPecaImageUrl = null;
+
 function resetPecaForm(){
   document.getElementById('pecaForm').reset();
   document.getElementById('pecaId').value = '';
   document.getElementById('pMarkup').value = 1.5;
+  document.getElementById('pAtivo').value = 'true';
+  document.getElementById('pFotoPreview').innerHTML = '';
+  editingPecaImageUrl = null;
   document.getElementById('filRepeater').innerHTML = '';
   document.getElementById('insRepeater').innerHTML = '';
   addFilRow();
@@ -474,9 +564,27 @@ document.getElementById('pecaForm').addEventListener('submit', async (e)=>{
       if(ins) custoInsumos += Number(ins.custo_unitario) * r.quantidade;
     });
 
+    let imagem_url = editingPecaImageUrl;
+    const fotoFile = document.getElementById('pFoto').files[0];
+    if(fotoFile){
+      const ext = fotoFile.name.split('.').pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const { error: uploadError } = await supabaseClient.storage.from('produtos-fotos').upload(path, fotoFile, { upsert:false });
+      if(uploadError) throw uploadError;
+      const { data: publicData } = supabaseClient.storage.from('produtos-fotos').getPublicUrl(path);
+      imagem_url = publicData.publicUrl;
+    }
+
     const payload = {
       nome: document.getElementById('pNome').value.trim(),
+      categoria: document.getElementById('pCategoria').value.trim(),
+      descricao: document.getElementById('pDescricao').value.trim() || null,
+      material: document.getElementById('pMaterial').value.trim() || null,
+      tamanho: document.getElementById('pTamanho').value.trim() || null,
       tempo_impressao_horas: Number(document.getElementById('pTempo').value) || 0,
+      preco_atacado: document.getElementById('pPrecoAtacado').value || null,
+      imagem_url,
+      ativo: document.getElementById('pAtivo').value === 'true',
       markup,
       custo_filamento: custoFilamento,
       custo_energia: custoEnergia,
@@ -526,3 +634,58 @@ async function deletePeca(id){
   showToast('Peça apagada.');
   await loadPecas();
 }
+
+/* =========================================================
+   UPLOAD EM LOTE — casa o nome do arquivo com a peça
+   ========================================================= */
+function slugifyGestao(str){
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+document.getElementById('bulkUploadBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('bulkFileInput');
+  const resultsBox = document.getElementById('bulkResults');
+  const files = [...input.files];
+  if(!files.length){
+    resultsBox.innerHTML = '<div class="error-msg">Selecione pelo menos uma foto primeiro.</div>';
+    return;
+  }
+  resultsBox.innerHTML = '';
+  const btn = document.getElementById('bulkUploadBtn');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+
+  for(const file of files){
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    const fileSlug = slugifyGestao(baseName);
+    const match = ALL_PECAS.find(p => slugifyGestao(p.nome) === fileSlug);
+
+    const line = document.createElement('div');
+    line.style.fontSize = '13.5px';
+
+    if(!match){
+      line.innerHTML = `❌ <strong>${esc(file.name)}</strong> — nenhuma peça encontrada com esse nome.`;
+      resultsBox.appendChild(line);
+      continue;
+    }
+    try{
+      const ext = file.name.split('.').pop();
+      const path = `${match.id}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabaseClient.storage.from('produtos-fotos').upload(path, file, { upsert:false });
+      if(uploadError) throw uploadError;
+      const { data: publicData } = supabaseClient.storage.from('produtos-fotos').getPublicUrl(path);
+      const { error: updateError } = await supabaseClient.from('pecas').update({ imagem_url: publicData.publicUrl }).eq('id', match.id);
+      if(updateError) throw updateError;
+      line.innerHTML = `✅ <strong>${esc(file.name)}</strong> → ${esc(match.nome)}`;
+    } catch(err){
+      line.innerHTML = `⚠️ <strong>${esc(file.name)}</strong> — erro: ${esc(err.message)}`;
+    }
+    resultsBox.appendChild(line);
+  }
+  btn.disabled = false; btn.textContent = 'Enviar fotos';
+  input.value = '';
+  await loadPecas();
+  showToast('Upload em lote concluído!');
+});
